@@ -1,8 +1,12 @@
 package com.example.pizzabdin.domain.entity;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -16,12 +20,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "user")
@@ -58,19 +64,9 @@ public class User extends BaseEntity implements UserDetails {
     @Column(name = "address")
     private String address;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(
-            name = "users_roles",
-            joinColumns = @JoinColumn(
-                    name = "user_id",
-                    referencedColumnName = "id"
-            ),
-            inverseJoinColumns = @JoinColumn(
-                    name = "role_id",
-                    referencedColumnName = "id"
-            )
-    )
-    private Set<Role> roles;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @Enumerated(EnumType.STRING)
+    private Set<RoleType> roles;
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
     private List<Order> orders = new ArrayList<>();
@@ -86,7 +82,7 @@ public class User extends BaseEntity implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return roles;
+        return roles.stream().map(roleType -> new SimpleGrantedAuthority(roleType.name())).collect(Collectors.toList());
     }
 
     @Override
